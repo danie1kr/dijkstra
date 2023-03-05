@@ -52,4 +52,19 @@ using Path = std::vector<const _Node*>;
 Path path = dijkstra.shortestPath(&target);
 ```
 
+## One-step calls
+To execute the time consuming dijkstra alogrithm on large graphs also in an event based environment without blocking, three indiviual methods are provided:
+```C++
+		// init
+		dijkstra_init(nodes, start);
+
+		// dijkstra
+		while (dijkstra_continue())
+		{
+			// step
+			dijkstra_step(neighbors, distance);
+		}
+```
+This allows the execution on systems with a watchdog, e.g. a browser.
+
 Let me know of any comments, remarks or additions.

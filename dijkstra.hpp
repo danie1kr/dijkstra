@@ -31,7 +31,7 @@ public:
 		return path;
 	}
 
-	void dijkstra(const _Nodes& nodes, const _Node* start, std::function<const std::vector<const _Node*>(const _Node*)> neighbors, std::function<const _Distance(const _Node*, const _Node*)> distance)
+	void dijkstra_init(const _Nodes& nodes, const _Node* start)
 	{
 		dist.clear();
 		prec.clear();
@@ -45,40 +45,56 @@ public:
 			Q.push_back(&*it);
 		}
 		dist[start] = 0;
+	}
+
+	const bool dijkstra_continue() const
+	{
+		return Q.size() > 0;
+	}
+
+	void dijkstra_step(std::function<const std::vector<const _Node*>(const _Node*)> neighbors, std::function<const _Distance(const _Node*, const _Node*)> distance)
+	{
+		const _Node* u;
+		_Distance shortestDistInQ = _Infinity;
+
+		// find Q with shortest distance
+		for (auto it = Q.begin(); it != Q.end(); ++it)
+		{
+			if (dist[*it] < shortestDistInQ)
+			{
+				u = *it;
+				shortestDistInQ = dist[*it];
+			}
+		}
+
+		// remove it from Q
+		(void)std::remove(Q.begin(), Q.end(), u);
+		Q.resize(Q.size() - 1);
+
+		// check all neighbors and remember the shortest path
+		for (const auto v : neighbors(u))
+		{
+			if (std::find(Q.begin(), Q.end(), v) != Q.end())
+			{
+				_Distance dist_u_v = dist[u] + distance(u, v);
+				if (dist[u] + dist_u_v < dist[v])
+				{
+					dist[v] = dist[u] + dist_u_v;
+					prec[v] = u;
+				}
+			}
+		}
+	}
+
+	// convenience wrapper for the three methods
+	void dijkstra(const _Nodes& nodes, const _Node* start, std::function<const std::vector<const _Node*>(const _Node*)> neighbors, std::function<const _Distance(const _Node*, const _Node*)> distance)
+	{
+		this->dijkstra_init(nodes, start);
 
 		// dijkstra
-		while (Q.size() > 0)
+		while (this->dijkstra_continue())
 		{
-			const _Node* u;
-			_Distance shortestDistInQ = _Infinity;
-
-			// find Q with shortest distance
-			for (auto it = Q.begin(); it != Q.end(); ++it)
-			{
-				if (dist[*it] < shortestDistInQ)
-				{
-					u = *it;
-					shortestDistInQ = dist[*it];
-				}
-			}
-
-			// remove it from Q
-			(void)std::remove(Q.begin(), Q.end(), u);
-			Q.resize(Q.size() - 1);
-
-			// check all neighbors and remember the shortest path
-			for (const auto v : neighbors(u))
-			{
-				if (std::find(Q.begin(), Q.end(), v) != Q.end())
-				{
-					_Distance dist_u_v = dist[u] + distance(u, v);
-					if (dist[u] + dist_u_v < dist[v])
-					{
-						dist[v] = dist[u] + dist_u_v;
-						prec[v] = u;
-					}
-				}
-			}
+			this->dijkstra_step(neighbors, distance);
 		}
 	}
 };
