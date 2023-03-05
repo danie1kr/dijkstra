@@ -1,3 +1,5 @@
+// From: https://github.com/danie1kr/dijkstra
+// License: https://github.com/danie1kr/dijkstra/blob/main/LICENSE
 
 #pragma once
 #include <vector>
