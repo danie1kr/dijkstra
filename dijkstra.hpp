@@ -47,43 +47,42 @@ public:
 		dist[start] = 0;
 	}
 
-	const bool dijkstra_continue() const
+	const bool dijkstra_step(std::function<const std::vector<const _Node*>(const _Node*)> neighbors, std::function<const _Distance(const _Node*, const _Node*)> distance)
 	{
-		return Q.size() > 0;
-	}
-
-	void dijkstra_step(std::function<const std::vector<const _Node*>(const _Node*)> neighbors, std::function<const _Distance(const _Node*, const _Node*)> distance)
-	{
-		const _Node* u;
-		_Distance shortestDistInQ = _Infinity;
-
-		// find Q with shortest distance
-		for (auto it = Q.begin(); it != Q.end(); ++it)
+		if (Q.size() > 0)
 		{
-			if (dist[*it] < shortestDistInQ)
-			{
-				u = *it;
-				shortestDistInQ = dist[*it];
-			}
-		}
+			const _Node* u;
+			_Distance shortestDistInQ = _Infinity;
 
-		// remove it from Q
-		(void)std::remove(Q.begin(), Q.end(), u);
-		Q.resize(Q.size() - 1);
-
-		// check all neighbors and remember the shortest path
-		for (const auto v : neighbors(u))
-		{
-			if (std::find(Q.begin(), Q.end(), v) != Q.end())
+			// find Q with shortest distance
+			for (auto it = Q.begin(); it != Q.end(); ++it)
 			{
-				_Distance dist_u_v = dist[u] + distance(u, v);
-				if (dist[u] + dist_u_v < dist[v])
+				if (dist[*it] < shortestDistInQ)
 				{
-					dist[v] = dist[u] + dist_u_v;
-					prec[v] = u;
+					u = *it;
+					shortestDistInQ = dist[*it];
+				}
+			}
+
+			// remove it from Q
+			(void)std::remove(Q.begin(), Q.end(), u);
+			Q.resize(Q.size() - 1);
+
+			// check all neighbors and remember the shortest path
+			for (const auto v : neighbors(u))
+			{
+				if (std::find(Q.begin(), Q.end(), v) != Q.end())
+				{
+					_Distance dist_u_v = dist[u] + distance(u, v);
+					if (dist[u] + dist_u_v < dist[v])
+					{
+						dist[v] = dist[u] + dist_u_v;
+						prec[v] = u;
+					}
 				}
 			}
 		}
+		return Q.size() > 0;
 	}
 
 	// convenience wrapper for the three methods
@@ -92,9 +91,7 @@ public:
 		this->dijkstra_init(nodes, start);
 
 		// dijkstra
-		while (this->dijkstra_continue())
-		{
-			this->dijkstra_step(neighbors, distance);
-		}
+		while (this->dijkstra_step(neighbors, distance))
+			;
 	}
 };

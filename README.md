@@ -53,18 +53,15 @@ Path path = dijkstra.shortestPath(&target);
 ```
 
 ## One-step calls
-To execute the time consuming dijkstra alogrithm on large graphs also in an event based environment without blocking, three indiviual methods are provided:
+To execute the time consuming dijkstra alogrithm on large graphs also in an event based environment without blocking, two indiviual methods are provided:
 ```C++
 		// init
 		dijkstra_init(nodes, start);
 
 		// dijkstra
-		while (dijkstra_continue())
-		{
-			// step
-			dijkstra_step(neighbors, distance);
-		}
+		while (dijkstra_step(neighbors, distance));
+		
 ```
-This allows the execution on systems with a watchdog, e.g. a browser.
+This allows the execution on systems with a watchdog, e.g. a browser. It is equivalent to the `dijkstra.dijkstra(nodes, start, neighbors, distance)` call.
 
 Let me know of any comments, remarks or additions.
