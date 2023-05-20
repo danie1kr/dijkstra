@@ -91,6 +91,6 @@ DistanceStorage distStorage(
 ```
 In that example, a std::vector is used for data management. But any other method can be devised as well, making use of persistent or offside storage.
 
-Also see [example.cpp] which is used for the status badge.
+Also see [example.cpp](example.cpp) which is used for the status badge.
 
 Let me know of any comments, remarks or additions.
