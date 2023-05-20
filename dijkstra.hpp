@@ -53,7 +53,7 @@ private:
 
 public:
 	using Path = std::vector<size_t>;
-	const Path shortestPath(const size_t target)
+	const Path shortestPath(const size_t target) const
 	{
 		Path path;
 		path.push_back(target);
@@ -67,8 +67,21 @@ public:
 		return path;
 	}
 
+	const _Distance shortestDistance(const size_t target, std::function<const _Distance(const size_t, const size_t, typename PrecStorage::GetCallback)> distance) const
+	{
+		_Distance dist = 0;
+		size_t current = target, next = target;
+		while ((next = prec.get(current)) != unset)
+		{
+			dist += distance(current, next, prec.get);
+			current = next;
+		}
+
+		return dist;
+	}
+
 	using PathCallback = std::function<void(const size_t i)>;
-	void shortestPath(const size_t target, PathCallback path)
+	void shortestPath(const size_t target, PathCallback path) const
 	{
 		size_t current = target;
 		size_t j = unset;
