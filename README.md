@@ -1,5 +1,6 @@
 # dijkstra
 Header-only C++ Dijkstra implementation
+[![Compile & Test](https://github.com/danie1kr/dijkstra/actions/workflows/main.yml/badge.svg)](https://github.com/danie1kr/dijkstra/actions/workflows/main.yml)
 
 # About
 This repository contains a single C++ header file `dijkstra.hpp` providing a slim but highly flexible interface.
@@ -89,5 +90,7 @@ DistanceStorage distStorage(
 );
 ```
 In that example, a std::vector is used for data management. But any other method can be devised as well, making use of persistent or offside storage.
+
+Also see [example.cpp] which is used for the status badge.
 
 Let me know of any comments, remarks or additions.
