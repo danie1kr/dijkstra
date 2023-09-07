@@ -9,22 +9,17 @@
 template<typename _Distance>
 class Dijkstra
 {
-	//std::vector<const _Node*> Q;
-	//std::map<const _Node*, _Distance> dist;
-	//std::map<const _Node*, const _Node*> prec;
-
 	std::vector<bool> Q;
 	size_t remainingQ = 0;
 
-	const size_t unset = (size_t)-1;
-
 public:
 	const _Distance infinity;
+	static const size_t unset = (size_t)-1;
 
 	template<typename T>
 	struct Storage
 	{
-		using AllocCallback = std::function<void(const size_t elements, const size_t sizePerElement)>;
+		using AllocCallback = std::function<void(const size_t elements, const T defaultValue)>;
 		using SetCallback = std::function<void(const size_t i, const T value)>;
 		using GetCallback = std::function<const T(const size_t i)>;
 
@@ -81,16 +76,16 @@ public:
 	void dijkstra_init(const size_t nodesCount, const size_t start)
 	{
 		const size_t n = nodesCount;
-		dist.alloc(n, sizeof(_Distance));
-		prec.alloc(n, sizeof(size_t));
-		Q.resize(n);
-
+		dist.alloc(n, infinity);
+		prec.alloc(n, unset);
+		Q.resize(n, false);
+		
 		// init
 		for (size_t i = 0; i < n; ++i)
 		{
 			dist.set(i, infinity);
-			prec.set(i, unset);
-			Q[i] = false;
+		//	prec.set(i, unset);
+		//	Q[i] = false;
 		}
 		dist.set(start, 0);
 		remainingQ = n;
@@ -157,24 +152,35 @@ public:
 	}
 };
 
-/*
-template<class _Node, class _Nodes, typename _Distance>
-class Dijkstra
+#include <queue>
+template<typename _Distance>
+class DijkstraInternalMemory
 {
-	std::vector<const _Node*> Q;
-	std::map<const _Node*, _Distance> dist;
-	std::map<const _Node*, const _Node*> prec;
+	std::vector<bool> Q;
+	std::vector<_Distance> dist;
+	std::vector<size_t> prec;
+	size_t remainingQ = 0;
 
 public:
 	const _Distance infinity;
+	//static const size_t unset = (size_t)-1;
 
-	using Path = std::vector<const _Node*>;
-	const Path shortestPath(const _Node* target)
+	template<typename T>
+	struct Storage
+	{
+		using GetCallback = std::function<const T(const size_t i)>;
+	};
+
+	using PrecStorage = Storage<size_t>;
+
+public:
+	using Path = std::vector<size_t>;
+	const Path shortestPath(const size_t target)
 	{
 		Path path;
 		path.push_back(target);
-		const _Node* current = target;
-		while (prec[current] != nullptr)
+		size_t current = target;
+		while (prec[current] != (size_t)-1)
 		{
 			current = prec[current];
 			path.push_back(current);
@@ -183,76 +189,137 @@ public:
 		return path;
 	}
 
-	Dijkstra(const _Distance infinity) : infinity(infinity) { };
-
-	void dijkstra_init(const _Nodes& nodes, const _Node* start)
+	using PathCallback = std::function<void(const size_t i)>;
+	void shortestPath(const size_t target, PathCallback path)
 	{
-		dist.clear();
-		prec.clear();
-		Q.clear();
-
-		// init
-		for (auto it = nodes.begin(); it != nodes.end(); ++it)
-		{
-			dist.emplace(&*it, infinity);
-			prec.emplace(&*it, nullptr);
-			Q.push_back(&*it);
-		}
-		dist[start] = 0;
+		size_t current = target;
+		size_t j = (size_t)-1;
+		while ((j = prec[current]) != (size_t)-1)
+			path(j);
 	}
 
-	const bool dijkstra_step(std::function<const std::vector<const _Node*>(const _Node*)> neighbors, std::function<const _Distance(const _Node*, const _Node*, const std::map<const _Node*, const _Node*>&)> distance)
+	DijkstraInternalMemory(const _Distance infinity) : infinity{ infinity }, dist(), prec() { };
+	
+	struct DistNodePair
 	{
-		if (Q.size() > 0)
+		DistNodePair(const DistNodePair &other) : dist{ other.dist }, node{ other.node } {};
+		DistNodePair(const _Distance dist, const size_t node) : dist{ dist }, node{ node } {};
+		DistNodePair& operator=(DistNodePair other)
 		{
-			const _Node* u = nullptr;
+			std::swap(dist, other.dist);
+			std::swap(node, other.node);
+			return *this;
+		}
+
+		_Distance dist;
+		size_t node;
+		bool operator>(const DistNodePair& b) const
+		{
+			return this->dist > b.dist;
+		}
+	};
+	std::priority_queue<DistNodePair, std::vector<DistNodePair>, std::greater<DistNodePair>> pq;
+
+	void dijkstra_init(const size_t nodesCount, const size_t start)
+	{
+		const size_t n = nodesCount;
+		dist.resize(n, infinity);
+		prec.resize(n, (size_t)-1);
+		pq.emplace(0, start);
+		dist[start] = 0;
+
+		/*
+		const size_t n = nodesCount;
+		dist.resize(n, infinity);
+		prec.resize(n, unset);
+		Q.resize(n, false);
+
+		dist[start] = 0;
+		Q[start] = true;
+		remainingQ = n - 1;*/
+	}
+
+	const bool dijkstra_step(std::function<const std::vector<size_t>(const size_t)> neighbors, std::function<const _Distance(const size_t, const size_t, typename PrecStorage::GetCallback)> distance)
+	{
+		if (!pq.empty())
+		{
+			const auto u = pq.top().node;
+			pq.pop();
+			// check all neighbors and remember the shortest path
+			for (const auto v : neighbors(u))
+			{
+				//if (Q[v] == false)
+				{
+					const auto dist_u = dist[u];
+					const auto dist_v = dist[v];
+					const auto dist_u_v = distance(u, v, [this](const size_t i) -> const size_t { return prec[i]; });
+					if (dist_u + dist_u_v < dist_v)
+					{
+						dist[v] = dist_u + dist_u_v;
+						prec[v] = u;
+						pq.emplace(dist[v], v);
+					}
+				}
+			}
+
+		}
+		return pq.size() > 0;
+		/*
+		if (remainingQ > 0)
+		{
+			size_t u = unset;
 			_Distance shortestDistInQ = this->infinity;
 
 			// find Q with shortest distance
-			for (auto it = Q.begin(); it != Q.end(); ++it)
+			for (auto i = 0; i < Q.size(); ++i)
 			{
-				if (dist[*it] < shortestDistInQ)
+				if (!Q[i])
 				{
-					u = *it;
-					shortestDistInQ = dist[*it];
+					const auto d = dist[i];
+					if (d < shortestDistInQ)
+					{
+						u = i;
+						shortestDistInQ = d;
+					}
 				}
 			}
 
 			// we found another independent cycle in the graph
-			if (u == nullptr)
+			if (u == unset)
 			{
 				return false;
 			}
 
 			// remove it from Q
-			(void)std::remove(Q.begin(), Q.end(), u);
-			Q.resize(Q.size() - 1);
-			 
+			Q[u] = true;
+			--remainingQ;
+
 			// check all neighbors and remember the shortest path
 			for (const auto v : neighbors(u))
 			{
-				if (std::find(Q.begin(), Q.end(), v) != Q.end())
+				if (Q[v] == false)
 				{
-					_Distance dist_u_v = distance(u, v, prec);
-					if (dist[u] + dist_u_v < dist[v])
+					const auto dist_u = dist[u];
+					const auto dist_v = dist[v];
+					const auto dist_u_v = distance(u, v, [this](const size_t i) -> const size_t { return prec[i]; });
+					if (dist_u + dist_u_v < dist_v)
 					{
-						dist[v] = dist[u] + dist_u_v;
+						dist[v] = dist_u + dist_u_v;
 						prec[v] = u;
 					}
 				}
 			}
 		}
-		return Q.size() > 0;
+		return remainingQ > 0;*/
 	}
 
 	// convenience wrapper for the three methods
-	void dijkstra(const _Nodes& nodes, const _Node* start, std::function<const std::vector<const _Node*>(const _Node*)> neighbors, std::function<const _Distance(const _Node*, const _Node*, const std::map<const _Node*, const _Node*>&)> distance)
+	void dijkstra(const size_t nodesCount, const size_t start, std::function<const std::vector<size_t>(const size_t)> neighbors, std::function<const _Distance(const size_t, const size_t, typename PrecStorage::GetCallback)> distance)
 	{
-		this->dijkstra_init(nodes, start);
+		this->dijkstra_init(nodesCount, start);
 
 		// dijkstra
 		while (this->dijkstra_step(neighbors, distance))
 			;
 	}
 };
-*/
