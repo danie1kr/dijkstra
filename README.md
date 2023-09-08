@@ -3,7 +3,7 @@ Header-only C++ Dijkstra implementation
 [![Compile & Test](https://github.com/danie1kr/dijkstra/actions/workflows/main.yml/badge.svg)](https://github.com/danie1kr/dijkstra/actions/workflows/main.yml)
 
 # About
-This repository contains a single C++ header file `dijkstra.hpp` providing a slim but highly flexible interface.
+This repository contains a single C++ header file `dijkstra.hpp` providing a slim interface.
 I created this for my other [repository](https://github.com/danie1kr/timeSaverSolver) which can genreate model railroad timesaver puzzles and I wanted it to also provide a best answer ;)
 
 # Requirements
@@ -11,7 +11,7 @@ C++14, tested with Visual Studio 2022
 (As it needs to run on a microcontroller which compiler does not support the most recent C++ standards, I cannot use the newest features.)
 
 # Usage
-The Dijkstra template takes a `_Distance` type.
+The Dijkstra template takes a `_Distance` type and optional `_Tidx` type, defaulting to `size_t`.
 
 ```C++
 class Step;
@@ -24,9 +24,9 @@ The `dijkstra` method takes a collection size and the index to the first node to
 Additionally, two callback methods need to be provided:
 ```C++
 std::function<const std::vector<size_t>(const size_t)> neighbors;
-std::function<const _Distance(const size_t, const size_t, PrecStorage::GetCallback)> distance;
+std::function<const _Distance(const size_t, const size_t, PreviousCallback)> distance;
 ```
-`neighbors` provides a list of connected nodes to the algorithm and `distance` calculates the length of an edge between two nodes. To better calculate the distance, the whole path can be retrieved via the `GetCallback`
+`neighbors` provides a list of connected nodes to the algorithm and `distance` calculates the length of an edge between two nodes. To better calculate the distance, the whole path can be retrieved via the `PreviousCallback`
 
 ```C++
 // calculate all paths
@@ -38,7 +38,7 @@ dijkstra.dijkstra(this->steps.size(), 0,
 			neighbors.push_back(neighbor.target);
 		return neighbors;
 	},
-	[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned int {
+	[&](const size_t a, const size_t b, PreviousCallback prec) -> const unsigned int {
 		for (auto neighbor : steps[a].actions)
 			if (neighbor.target == b)
 				return (unsigned int)1;
@@ -66,30 +66,6 @@ To execute the time consuming dijkstra alogrithm on large graphs also in an even
 		
 ```
 This allows the execution on systems with a watchdog, e.g. a browser. It is equivalent to the `dijkstra.dijkstra(nodes, start, neighbors, distance)` call.
-
-## Memory management
-With very big graphs, the internal data required for the algorihm can also be big in related to limited memory resources, e.g. on a micro controller.
-For this, the constructor takes two arguments `DistanceStorage& dist` and `PrecStorage& prec`.
-
-The user has to supply three callback methods for each of the storage types: allocation, getter and setter like so:
-```C++
-std::vector<DistanceStorage::StorageType> dist;
-DistanceStorage distStorage(
-    [&dist](const size_t elements, const size_t sizePerElement)
-    {
-        dist.resize(elements);
-    },
-    [&dist](const size_t i, const TSS::DistanceStorage::StorageType value)
-    {
-        dist[i] = value;
-    },
-    [&dist](const size_t i) -> const TSS::DistanceStorage::StorageType
-    {
-        return dist[i];
-    }
-);
-```
-In that example, a std::vector is used for data management. But any other method can be devised as well, making use of persistent or offside storage.
 
 Also see [example.cpp](example.cpp) which is used for the status badge.
 
