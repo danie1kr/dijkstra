@@ -19,6 +19,11 @@ using Steps = std::vector<Step>;
 using Dijk = Dijkstra<_Distance = unsigned long>;
 ```
 
+The constructor takes an `infinite` and `unset` property, the later defaulting to `-1`. Both are used for settingthe internal data structures and need to match the `_Distance` and `_Tidx` types.
+```C++
+Dijk dijkstra(-1);
+```
+
 The `dijkstra` method takes a collection size and the index to the first node to start from. Internally, all mechanisms are handled on a index basis. So remember to keep your collection stable between the `dijkstra` call and the `shortestPath` calculation!
 
 Additionally, two callback methods need to be provided:
